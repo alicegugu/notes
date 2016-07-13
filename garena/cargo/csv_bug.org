@@ -1,0 +1,587 @@
+* How to contribute to spark
+** git repo
+https://github.com/alicegugu/spark
+
+*** build code
+build/mvn -Pyarn -Phadoop-2.6 -Dhadoop.version=2.6.0 -DskipTests -Phive -Phive-thriftserver clean package
+*** open in idea
+
+** issue tracker
+https://issues.apache.org/jira/browse/SPARK/?selectedTab=com.atlassian.jira.jira-projects-plugin:issues-panel
+** https://cwiki.apache.org/confluence/display/SPARK/Contributing+to+Spark#ContributingtoSpark-PreparingtoContributeCodeChanges
+
+* call stack
+
+https://github.com/cloudera/hue/blob/574fd75fca1f7b9ef78ccc2278c9e50d42aa8779/desktop/libs/notebook/src/notebook/templates/notebook_ko_components.mako
+
+      DownloadResultsViewModel.prototype.download = function (format) {
+        if (typeof trackOnGA == 'function') {
+          trackOnGA('notebook/download/' + format);
+        }
+        var self = this;
+        self.$downloadForm.find('input[name=\'format\']').val(format);
+        self.$downloadForm.find('input[name=\'notebook\']').val(ko.mapping.toJSON(self.notebook.getContext()));
+        self.$downloadForm.find('input[name=\'snippet\']').val(ko.mapping.toJSON(self.snippet.getContext()));
+        self.$downloadForm.submit();
+      };
+
+
+https://github.com/cloudera/hue/blob/master/desktop/libs/notebook/src/notebook/views.py
+
+@check_document_access_permission()
+def download(request):
+  notebook = json.loads(request.POST.get('notebook', '{}'))
+  snippet = json.loads(request.POST.get('snippet', '{}'))
+  file_format = request.POST.get('format', 'csv')
+
+  return get_api(request, snippet).download(notebook, snippet, file_format)
+
+
+** notebook
+{
+    "id": 261,
+    "isSaved": false,
+    "sessions": [
+        {
+            "id": 205,
+            "properties": [
+                {
+                    "defaultValue": [],
+                    "help_text": "Add one or more files, jars, or archives to the list of resources.",
+                    "key": "files",
+                    "multiple": true,
+                    "nice_name": "Files",
+                    "type": "hdfs-files",
+                    "value": []
+                },
+                {
+                    "defaultValue": [],
+                    "help_text": "Add one or more registered UDFs (requires function name and fully-qualified class name).",
+                    "key": "functions",
+                    "multiple": true,
+                    "nice_name": "Functions",
+                    "type": "functions",
+                    "value": []
+                },
+                {
+                    "defaultValue": [],
+                    "help_text": "Hive and Hadoop configuration properties.",
+                    "key": "settings",
+                    "multiple": true,
+                    "nice_name": "Settings",
+                    "options": [
+                        "hive.map.aggr",
+                        "hive.exec.compress.output",
+                        "hive.exec.parallel",
+                        "hive.execution.engine",
+                        "mapreduce.job.queuename"
+                    ],
+                    "type": "settings",
+                    "value": []
+                }
+            ],
+            "type": "hive"
+        }
+    ],
+    "type": "query-hive",
+    "uuid": "9d43f9f4-12c0-4cac-8446-f6b396200844"
+}
+
+** snippet
+
+{
+    "database": "default",
+    "id": "9417299d-247b-9be5-87a8-f40011692fcf",
+    "properties": {
+        "files": [],
+        "functions": [],
+        "settings": []
+    },
+    "result": {
+        "handle": {
+            "end": {
+                "column": 34,
+                "row": 0
+            },
+            "guid": "oxGVsRorTs6FIcyOkcEFMQ==\n",
+            "has_more_statements": false,
+            "has_result_set": true,
+            "log_context": null,
+            "modified_row_count": null,
+            "operation_type": 0,
+            "secret": "PW/liB95TfC1KWn0Nhi+SA==\n",
+            "start": {
+                "column": 0,
+                "row": 0
+            },
+            "statement": "select * from account_tab limit 100;",
+            "statement_id": 0,
+            "statements_count": 1
+        },
+        "id": "32f2af60-8e38-f6a6-ebac-d5df192ebb28",
+        "type": "table"
+    },
+    "statement": "select * from account_tab limit 100;",
+    "status": "available",
+    "type": "hive"
+}
+
+------------------------------------------------------------------
+
+
+
+
+https://github.com/cloudera/hue/blob/d865e610e07173f9bef353edefcf653a55ec9dd0/desktop/libs/notebook/src/notebook/connectors/hiveserver2.py
+
+class HS2Api(Api):
+  @query_error_handler
+  def download(self, notebook, snippet, format):
+    try:
+      db = self._get_db(snippet)            //   from beeswax.server import dbms; return dbms.get(self.user, query_server=get_query_server_config(name='beeswax'))   
+                                           // DBMS_CACHE[user.username][query_server['server_name']] = HiveServer2Dbms(HiveServerClientCompatible(HiveServerClient(query_server, user)), QueryHistory.SERVER_TYPE[1][0])
+                                           //     query_server = {
+        'server_name': 'beeswax', # Aka HiveServer2 now
+        'server_host': HIVE_SERVER_HOST.get(),
+        'server_port': HIVE_SERVER_PORT.get(),
+        'principal': kerberos_principal,
+        'http_url': '%(protocol)s://%(host)s:%(port)s/%(end_point)s' % {
+            'protocol': 'https' if hiveserver2_use_ssl() else 'http',
+            'host': HIVE_SERVER_HOST.get(),
+            'port': hive_site.hiveserver2_thrift_http_port(),
+            'end_point': hive_site.hiveserver2_thrift_http_path()
+        },
+        'transport_mode': 'http' if hive_site.hiveserver2_transport_mode() == 'HTTP' else 'socket',
+        'auth_username': AUTH_USERNAME.get(),
+        'auth_password': AUTH_PASSWORD.get()
+    }
+
+                                           // a class which has HiveServerClientCompatible
+
+                               
+      handle = self._get_handle(snippet)    // beeswax.models.HiveServerQueryHandle return HiveServerQueryHandle(**snippet['result']['handle'])
+                                            // 1) decode handle secret and guid 2)leave 'log_context', 'secret', 'has_result_set', 'operation_type', 'modified_row_count', 'guid'
+                                            // a class which store following attributes
+                                                self.secret = secret
+                                                self.guid = guid
+                                                self.operation_type = operation_type
+                                                self.has_result_set = has_result_set
+                                                self.modified_row_count = modified_row_count
+                                                self.log_context = log_context
+
+      # Test handle to verify still valid
+      db.get_state(handle)                    //class HiveServerClientCompatible 
+                                                  def get_state(self, handle):
+                                                  operationHandle = handle.get_rpc_handle()
+                                                  res = self._client.get_operation_status(operationHandle) --> GetOperationStatus
+                                                  return HiveServerQueryHistory.STATE_MAP[res.operationState]
+
+                                                
+
+
+
+
+      return data_export.download(handle, format, db)
+    except Exception, e:
+      LOG.exception('error downloading notebook')
+
+      if not hasattr(e, 'message') or not e.message:
+        message = e
+      else:
+        message = e.message
+      raise PopupException(message, detail='')
+-------------------------------------------
+
+
+https://github.com/cloudera/hue/blob/8e6583e569d441cd16cb44e75c7554e7353f5529/apps/beeswax/src/beeswax/server/dbms.py
+
+-------------------------------------------------------
+
+https://github.com/cloudera/hue/blob/afd5c5a9f438961d61268ac83d904af6e838295f/apps/beeswax/src/beeswax/data_export.py
+
+def download(handle, format, db):
+  """
+  download(query_model, format) -> HttpResponse
+  Retrieve the query result in the format specified. Return an HttpResponse object.
+  """
+  if format not in common.DL_FORMATS:
+    LOG.error('Unknown download format "%s"' % (format,))
+    return
+
+  max_cells = conf.DOWNLOAD_CELL_LIMIT.get()
+
+  content_generator = HS2DataAdapter(handle, db, max_cells=max_cells, start_over=True)
+  generator = export_csvxls.create_generator(content_generator, format)
+  return export_csvxls.make_response(generator, format, 'query_result')
+
+
+
+-----------------------------------------------------------
+https://github.com/cloudera/hue/blob/afd5c5a9f438961d61268ac83d904af6e838295f/apps/beeswax/src/beeswax/data_export.py
+
+def HS2DataAdapter(handle, db, max_cells=-1, start_over=True):
+  """
+  HS2DataAdapter(query_model, db) -> headers, 2D array of data.
+  """
+  results = db.fetch(handle, start_over=start_over, rows=FETCH_SIZE)
+
+  while not results.ready:
+    time.sleep(_DATA_WAIT_SLEEP)
+    results = db.fetch(handle, start_over=start_over, rows=FETCH_SIZE)
+
+  headers = results.cols()
+  num_cols = len(headers)
+
+  # For result sets with high num of columns, fetch in smaller batches to avoid serialization cost
+  if num_cols > 100:
+    LOG.warn('The query results contain %d columns and may take an extremely long time to download, will reduce fetch size to 100.' % num_cols)
+    fetch_size = 100
+  else:
+    fetch_size = FETCH_SIZE
+
+  row_ctr = 1
+  limit_cells = max_cells > -1
+
+  while results is not None:
+    data = []
+    for row in results.rows():
+      row_ctr += 1
+      if limit_cells and (row_ctr * num_cols) > max_cells:
+        LOG.warn('The query results exceeded the maximum cell limit of %d. Data has been truncated to first %d rows.' % (max_cells, row_ctr))
+        break
+      data.append(row)
+
+    yield headers, data
+
+    if limit_cells and (row_ctr * num_cols) > max_cells:
+      break
+
+    if results.has_more:
+      results = db.fetch(handle, start_over=False, rows=fetch_size)
+    else:
+      results = None
+
+
+
+--------------------------------------------------------------
+https://github.com/cloudera/hue/blob/d865e610e07173f9bef353edefcf653a55ec9dd0/desktop/libs/notebook/src/notebook/connectors/hiveserver2.py
+ def fetch(self, handle, start_over=False, max_rows=None):
+    operationHandle = handle.get_rpc_handle()
+    if max_rows is None:
+      max_rows = 1000
+
+    if start_over and not (self.query_server['server_name'] == 'impala' and self.query_server['querycache_rows'] == 0): # Backward compatibility for impala
+      orientation = TFetchOrientation.FETCH_FIRST
+    else:
+      orientation = TFetchOrientation.FETCH_NEXT
+
+    print 'fetch()', max_rows, orientation       // 1000, 4(TFetchOrientation.FETCH_FIRST)
+    data_table = self._client.fetch_data(operationHandle, orientation=orientation, max_rows=max_rows) //HiveServerDataTable
+
+    return ResultCompatible(data_table) //ResultCompatible(HiveServerDataTable(TFetchResultsResp, GetResultSetMetadata, handle, query_server))
+
+
+class ResultCompatible:
+
+  def __init__(self, data_table):
+    self.data_table = data_table
+    self.rows = data_table.rows
+    self.has_more = data_table.has_more
+    self.start_row = data_table.startRowOffset
+    self.ready = True
+
+
+
+class HiveServerDataTable(DataTable):
+  def __init__(self, results, schema, operation_handle, query_server):
+    self.schema = schema and schema.schema
+    self.row_set = HiveServerTRowSet(results.results, schema)
+    self.operation_handle = operation_handle
+    if query_server['server_name'] == 'impala':
+      self.has_more = results.hasMoreRows
+    else:
+      self.has_more = not self.row_set.is_empty()    # Should be results.hasMoreRows but always True in HS2
+    self.startRowOffset = self.row_set.startRowOffset    # Always 0 in HS2
+
+  def rows(self):
+    for row in self.row_set:
+      yield row.fields()
+
+
+
+
+  class HiveServerTRowSet:
+    def __init__(self, row_set, schema):
+      self.row_set = row_set
+      self.rows = row_set.rows
+      self.schema = schema
+      self.startRowOffset = row_set.startRowOffset
+
+    def is_empty(self):
+      return len(self.rows) == 0
+
+    def cols(self, col_names):
+      cols_rows = []
+      for row in self.rows:
+        row = HiveServerTRow(row, self.schema)
+        cols = {}
+        for col_name in col_names:
+          cols[col_name] = row.col(col_name)
+        cols_rows.append(cols)
+      return cols_rows
+
+    def __iter__(self):
+      return self
+
+    def next(self):
+      if self.rows:
+        return HiveServerTRow(self.rows.pop(0), self.schema)
+      else:
+        raise StopIteration
+
+
+
+----------------------------------------------------------
+https://github.com/cloudera/hue/blob/afd5c5a9f438961d61268ac83d904af6e838295f/apps/beeswax/src/beeswax/server/hive_server2_lib.py
+
+  def fetch_data(self, operation_handle, orientation=TFetchOrientation.FETCH_NEXT, max_rows=1000):
+    # Fetch until the result is empty dues to a HS2 bug instead of looking at hasMoreRows
+    results, schema = self.fetch_result(operation_handle, orientation, max_rows)
+    return HiveServerDataTable(results, schema, operation_handle, self.query_server)
+
+
+
+------------------
+
+  def fetch_result(self, operation_handle, orientation=TFetchOrientation.FETCH_FIRST, max_rows=1000):
+    if operation_handle.hasResultSet:
+      fetch_req = TFetchResultsReq(operationHandle=operation_handle, orientation=orientation, maxRows=max_rows)
+      res = self.call(self._client.FetchResults, fetch_req)
+    else:
+      res = TFetchResultsResp(results=TRowSet(startRowOffset=0, rows=[], columns=[]))
+
+    if operation_handle.hasResultSet and TFetchOrientation.FETCH_FIRST: # Only fetch for the first call that should be with start_over
+      meta_req = TGetResultSetMetadataReq(operationHandle=operation_handle)
+      schema = self.call(self._client.GetResultSetMetadata, meta_req)
+    else:
+      schema = None
+
+    return res, schema
+
+
+
+
+---------------------------
+
+
+Thrift call: <class 'TCLIService.TCLIService.Client'>.FetchResults(args=(TFetchResultsReq(fetchType=0, operationHandle=TOperationHandle(hasResultSet=True, modifiedRowCount=None, operationType=0, operationId=THandleIdentifier(secret='\x01\x14\xf5\r\x9b%E\xa1\xa2;\x04@\xaa\xbfH\x96', guid='\xac\xef"t7|O\x8e\xbcK\xfa\xea\n\x13\xb1\x91')), orientation=4, maxRows=100),), kwargs={})
+
+
+
+
+
+
+
+
+[08/Jul/2016 13:42:06 +0000] thrift_util  DEBUG    Thrift call: <class 'TCLIService.TCLIService.Client'>.FetchResults(args=(TFetchResultsReq(fetchType=0, operationHandle=TOperationHandle(hasResultSet=True, modifiedRowCount=None, operationType=0, operationId=THandleIdentifier(secret="'\x03\xe3\x00\xde\x98Ev\x9a\xcd\x1c\xa9\xc2\xcd\x91s", guid='r~&\xeaK\xe2H\x84\xa5\xd6\xd9\xa4\xe5"4 ')), orientation=4, maxRows=1000),), kwargs={})
+[08/Jul/2016 13:42:06 +0000] thrift_util  DEBUG    Thrift call <class 'TCLIService.TCLIService.Client'>.FetchResults returned in 3ms: TFetchResultsResp(status=TStatus(errorCode=None, errorMessage=None, sqlState=None, infoMessages=None, statusCode=0), results=TRowSet(rows=[], columns=[TColumn(i32Val=TI32Column(nulls='\x00', values=[]), byteVal=None, i16Val=None, i64Val=None, stringVal=None, boolVal=None, doubleVal=None, binaryVal=None), TColumn(i32Val=TI32Column(nulls='\x00', values=[]), byteVal=None, i16Val=None, i64Val=None, stringVal=None, boolVal=None, doubleVal=None, binaryVal=None), TColumn(i32Val=None, byteVal=None, i16Val=None, i64Val=None, stringVal=TStringColumn(nulls='\x00', values=[]), boolVal=None, doubleVal=None, binaryVal=None), TColumn(i32Val=None, byteVal=None, i16Val=None, i64Val=None, stringVal=TStringColumn(nulls='\x00', values=[]), boolVal=None, doubleVal=None, binaryVal=None), TColumn(i32Val=None, byteVal=None, i16Val=None, i64Val=None, stringVal=TStringColumn(nulls='\x00', values=[]), boolVal=None, doubleVal=None, binaryVal=None), TColumn(i32Val=None, byteVal=None, i16Val=None, i64Val=None, stri...
+[08/Jul/2016 13:42:06 +0000] thrift_util  DEBUG    Thrift call: <class 'TCLIService.TCLIService.Client'>.GetResultSetMetadata(args=(TGetResultSetMetadataReq(operationHandle=TOperationHandle(hasResultSet=True, modifiedRowCount=None, operationType=0, operationId=THandleIdentifier(secret="'\x03\xe3\x00\xde\x98Ev\x9a\xcd\x1c\xa9\xc2\xcd\x91s", guid='r~&\xeaK\xe2H\x84\xa5\xd6\xd9\xa4\xe5"4 '))),), kwargs={})
+[08/Jul/2016 13:42:06 +0000] thrift_util  DEBUG    Thrift call <class 'TCLIService.TCLIService.Client'>.GetResultSetMetadata returned in 8ms: TGetResultSetMetadataResp(status=TStatus(errorCode=None, errorMessage=None, sqlState=None, infoMessages=None, statusCode=0), schema=TTableSchema(columns=[TColumnDesc(comment='', columnName='userid', typeDesc=TTypeDesc(types=[TTypeEntry(mapEntry=None, unionEntry=None, arrayEntry=None, userDefinedTypeEntry=None, structEntry=None, primitiveEntry=TPrimitiveTypeEntry(typeQualifiers=None, type=3))]), position=1), TColumnDesc(comment='', columnName='shopid', typeDesc=TTypeDesc(types=[TTypeEntry(mapEntry=None, unionEntry=None, arrayEntry=None, userDefinedTypeEntry=None, structEntry=None, primitiveEntry=TPrimitiveTypeEntry(typeQualifiers=None, type=3))]), position=2), TColumnDesc(comment='', columnName='phone', typeDesc=TTypeDesc(types=[TTypeEntry(mapEntry=None, unionEntry=None, arrayEntry=None, userDefinedTypeEntry=None, structEntry=None, primitiveEntry=TPrimitiveTypeEntry(typeQualifiers=None, type=7))]), position=3), TColumnDesc(comment='', columnName='email', typeDesc=TTypeDesc(types=[TTypeE...
+<beeswax.server.hive_server2_lib.HiveServerDataTable instance at 0x7f8a80414050>
+[08/Jul/2016 13:42:17 +0000] access       INFO     101.127.248.164 hue - "POST /notebook/api/check_status HTTP/1.1"
+[08/Jul/2016 13:42:17 +0000] dbms         DEBUG    Query Server: {'server_name': 'beeswax', 'transport_mode': 'socket', 'server_host': '10.65.12.3', 'server_port': 10000, 'auth_password_used': False, 'http_url': 'http://10.65.12.3:10001/cliservice', 'auth_username': 'hue', 'principal': None}
+[08/Jul/2016 13:42:17 +0000] thrift_util  DEBUG    Thrift call: <class 'TCLIService.TCLIService.Client'>.GetOperationStatus(args=(TGetOperationStatusReq(operationHandle=TOperationHandle(hasResultSet=True, modifiedRowCount=None, operationType=0, operationId=THandleIdentifier(secret="'\x03\xe3\x00\xde\x98Ev\x9a\xcd\x1c\xa9\xc2\xcd\x91s", guid='r~&\xeaK\xe2H\x84\xa5\xd6\xd9\xa4\xe5"4 '))),), kwargs={})
+[08/Jul/2016 13:42:17 +0000] thrift_util  DEBUG    Thrift call <class 'TCLIService.TCLIService.Client'>.GetOperationStatus returned in 1ms: TGetOperationStatusResp(status=TStatus(errorCode=None, errorMessage=None, sqlState=None, infoMessages=None, statusCode=0), operationState=2, errorMessage=None, sqlState=None, errorCode=None)
+
+
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+-----------------------spark---------------------------------------------
+https://github.com/apache/spark/blob/028c6a5dba01e5d82c34701f40d15916c9d3e9d0/sql/hive-thriftserver/src/main/java/org/apache/hive/service/cli/thrift/ThriftCLIService.java
+  @Override
+  public TFetchResultsResp FetchResults(TFetchResultsReq req) throws TException {
+    TFetchResultsResp resp = new TFetchResultsResp();
+    try {
+      RowSet rowSet = cliService.fetchResults(
+          new OperationHandle(req.getOperationHandle()),
+          FetchOrientation.getFetchOrientation(req.getOrientation()),
+          req.getMaxRows(),
+          FetchType.getFetchType(req.getFetchType()));
+      resp.setResults(rowSet.toTRowSet());
+      resp.setHasMoreRows(false);
+      resp.setStatus(OK_STATUS);
+    } catch (Exception e) {
+      LOG.warn("Error fetching results: ", e);
+      resp.setStatus(HiveSQLException.toTStatus(e));
+    }
+    return resp;
+  }
+
+
+  @Override
+  public RowSet fetchResults(OperationHandle opHandle, FetchOrientation orientation,
+      long maxRows, FetchType fetchType) throws HiveSQLException {
+    acquire(true);
+    try {
+      if (fetchType == FetchType.QUERY_OUTPUT) {
+        return operationManager.getOperationNextRowSet(opHandle, orientation, maxRows);
+      }
+      return operationManager.getOperationLogRowSet(opHandle, orientation, maxRows);
+    } finally {
+      release(true);
+    }
+  }
+
+  public RowSet getOperationNextRowSet(OperationHandle opHandle)
+      throws HiveSQLException {
+    return getOperation(opHandle).getNextRowSet();
+  }
+
+https://github.com/apache/spark/blob/054f991c4350af1350af7a4109ee77f4a34822f0/sql/hive-thriftserver/src/main/scala/org/apache/spark/sql/hive/thriftserver/SparkExecuteStatementOperation.scala
+  def getNextRowSet(order: FetchOrientation, maxRowsL: Long): RowSet = {
+    validateDefaultFetchOrientation(order)
+    assertState(OperationState.FINISHED)
+    setHasResultSet(true)
+    val resultRowSet: RowSet = RowSetFactory.create(getResultSetSchema, getProtocolVersion)
+    if (!iter.hasNext) {
+      resultRowSet
+    } else {
+      // maxRowsL here typically maps to java.sql.Statement.getFetchSize, which is an int
+      val maxRows = maxRowsL.toInt
+      var curRow = 0
+      while (curRow < maxRows && iter.hasNext) {
+        val sparkRow = iter.next()
+        val row = ArrayBuffer[Any]()
+        var curCol = 0
+        while (curCol < sparkRow.length) {
+          if (sparkRow.isNullAt(curCol)) {
+            row += null
+          } else {
+            addNonNullColumnValue(sparkRow, row, curCol)
+          }
+          curCol += 1
+        }
+        resultRowSet.addRow(row.toArray.asInstanceOf[Array[Object]])
+        curRow += 1
+      }
+      resultRowSet
+    }
+  }
+
+
+private var iter: Iterator[SparkRow] = _
+
+
+
+********************
+
+Debug spark
+
+
+https://www.zhihu.com/question/24869894
+
+It seems, it is not able to pick up the debug parameters. You can actually
+set export
+_JAVA_OPTIONS="-agentlib:jdwp=transport=dt_socket,address=8000,server=y,suspend=y"
+and then submit the job to enable debugging.
+
+
+start-thriftserver.sh --driver-java-options
+> "-agentlib:jdwp=transport=dt_socket,address=localhost:8000,server=y,suspend=n
+> -XX:MaxPermSize=512"  --master yarn://localhost:9000 --num-executors 2
+
+
+https://github.com/apache/spark/blob/054f991c4350af1350af7a4109ee77f4a34822f0/sql/hive-thriftserver/src/main/scala/org/apache/spark/sql/hive/thriftserver/SparkExecuteStatementOperation.scala
+
+  def getNextRowSet(order: FetchOrientation, maxRowsL: Long): RowSet = {
+    validateDefaultFetchOrientation(order)
+    assertState(OperationState.FINISHED)
+    setHasResultSet(true)
+    val resultRowSet: RowSet = RowSetFactory.create(getResultSetSchema, getProtocolVersion)
+    if (!iter.hasNext) {
+      resultRowSet
+    } else {
+      // maxRowsL here typically maps to java.sql.Statement.getFetchSize, which is an int
+      val maxRows = maxRowsL.toInt
+      var curRow = 0
+      while (curRow < maxRows && iter.hasNext) {
+        val sparkRow = iter.next()
+        val row = ArrayBuffer[Any]()
+        var curCol = 0
+        while (curCol < sparkRow.length) {
+          if (sparkRow.isNullAt(curCol)) {
+            row += null
+          } else {
+            addNonNullColumnValue(sparkRow, row, curCol)
+          }
+          curCol += 1
+        }
+        resultRowSet.addRow(row.toArray.asInstanceOf[Array[Object]])
+        curRow += 1
+      }
+      resultRowSet
+    }
+  }
+
+
+
+  @Override
+  public RowSet getNextRowSet(FetchOrientation orientation, long maxRows) throws HiveSQLException {
+    assertState(OperationState.FINISHED);
+    validateDefaultFetchOrientation(orientation);
+    if (orientation.equals(FetchOrientation.FETCH_FIRST)) {
+      rowSet.setStartOffset(0);
+    }
+    return rowSet.extractSubset((int)maxRows);
+  }
+}
+
+
+------------------
+resolution:
+
+copy iterator to process the data
+
+  def getNextRowSet(order: FetchOrientation, maxRowsL: Long): RowSet = {
+    validateDefaultFetchOrientation(order)
+    assertState(OperationState.FINISHED)
+    setHasResultSet(true)
+    val resultRowSet: RowSet = RowSetFactory.create(getResultSetSchema, getProtocolVersion)
+
+
+// add first iterator to class SparkExecuteStatementOperation
+    if (orientation.equals(FetchOrientation.FETCH_FIRST)) {
+     iter = first
+    }
+
+    if (!first.hasNext) {
+      resultRowSet
+    } else {
+      // maxRowsL here typically maps to java.sql.Statement.getFetchSize, which is an int
+      val maxRows = maxRowsL.toInt
+      var curRow = 0
+      while (curRow < maxRows && iter.hasNext) {
+        val sparkRow = iter.next()
+        val row = ArrayBuffer[Any]()
+        var curCol = 0
+        while (curCol < sparkRow.length) {
+          if (sparkRow.isNullAt(curCol)) {
+            row += null
+          } else {
+            addNonNullColumnValue(sparkRow, row, curCol)
+          }
+          curCol += 1
+        }
+        resultRowSet.addRow(row.toArray.asInstanceOf[Array[Object]])
+        curRow += 1
+      }
+      resultRowSet
+    }
+  }
+
