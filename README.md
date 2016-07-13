@@ -1,0 +1,2 @@
+# notes
+Projects, Knowledge, Thoguhts
