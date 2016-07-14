@@ -1,3 +1,17 @@
+* how to debug ,build and test
+
+cd /home/guhq/spark/sbin; ./stop-thriftserver.sh
+cd /home/guhq; rm -rf spark
+cp -rf /home/guhq/garena_spark/spark/dist /home/guhq/spark
+cd /home/guhq/spark; rm -rf conf
+cd /home/guhq/spark; cp -rf /home/guhq/spark_conf_o ./conf
+
+
+use beeline to create table
+
+
+
+cd /home/guhq/spark/sbin; ./start-thriftserver.sh
 * How to contribute to spark
 ** git repo
 https://github.com/alicegugu/spark

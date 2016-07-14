@@ -1,0 +1,2 @@
+* TODO CSV BUG
+** TODO use beeline to create table
