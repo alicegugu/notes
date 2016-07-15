@@ -1,2 +1,4 @@
-* TODO CSV BUG
-** TODO use beeline to create table
+* Goat and GMTool
+** TODO run it
+*** TODO run a nginx with a docker
+*** TODO read https://facebook.github.io/flux/docs/todo-list.html

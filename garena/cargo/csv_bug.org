@@ -1,6 +1,7 @@
 * how to debug ,build and test
 
 cd /home/guhq/spark/sbin; ./stop-thriftserver.sh
+cp -rf /home/guhq/metastore_db /home/guhq/spark/sbin/metastore_db
 cd /home/guhq; rm -rf spark
 cp -rf /home/guhq/garena_spark/spark/dist /home/guhq/spark
 cd /home/guhq/spark; rm -rf conf
@@ -8,7 +9,12 @@ cd /home/guhq/spark; cp -rf /home/guhq/spark_conf_o ./conf
 
 
 use beeline to create table
-
+** put csv on hdfs
+hadoop fs -put ~/data/201402_babs_open_data/201402_trip_data.csv /user/guhq
+** create table
+create table 201402_trip_data (Trip_ID int, Duration int, Start_Date string, Start_Station string, Start_Terminal string, End_Date string, End_Station string, End_Terminal string, Bike string, Subscription_Type string, Zip_code string) row format delimited fields terminated by ',';
+** load data
+load data inpath '/user/guhq/201402_trip_data.csv' into table 201402_trip_data;
 
 
 cd /home/guhq/spark/sbin; ./start-thriftserver.sh

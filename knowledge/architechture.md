@@ -1,0 +1,2 @@
+# typical architecture
+# references
