@@ -2,3 +2,5 @@
 ** TODO run it
 *** TODO run a nginx with a docker
 *** TODO read https://facebook.github.io/flux/docs/todo-list.html
+* TOREAD Docker Compose is great for development, testing, and staging environments, as well as CI workflows. You can learn more about each case in Common Use Cases.
+https://docs.docker.com/compose/overview/#common-use-cases
